@@ -7,8 +7,8 @@
  *   segundo 0-59 | minuto 0-59 | hora 0-23 | dia 1-31 | mês 1-12 | dia-da-semana 0-6 (0=domingo)
  * Ver README, seção "Decisões de projeto".
  *
- * Este componente é C puro de propósito: nada de esp_*, freertos/* ou driver/*. É isso que
- * permite compilá-lo no host e testá-lo com Unity/CTest sem hardware.
+ * Este componente é C puro de propósito: nenhum header do ESP-IDF, do FreeRTOS ou de driver.
+ * É isso que permite compilá-lo no host e testá-lo com Unity/CTest sem hardware.
  */
 
 cron_err_t cron_parse(const char *expr, cron_expr_t *out) {
