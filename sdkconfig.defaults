@@ -1,0 +1,19 @@
+# Defaults versionados. O sdkconfig gerado NÃO vai para o repo (está no .gitignore):
+# ele é derivado deste arquivo, e versionar os dois é receita para divergência silenciosa.
+
+CONFIG_IDF_TARGET="esp32"
+
+# Console serial: é por onde a CLI fala.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+
+# app_main só inicializa os módulos e retorna; as tasks fazem o trabalho.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+
+# Tick de 1 ms: a resolução do CRON é 1 s, mas o pisca precisa de meio período preciso.
+CONFIG_FREERTOS_HZ=1000
+
+# Software timer de 1 Hz do scheduler roda na Timer Service task.
+CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=2048
+
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y

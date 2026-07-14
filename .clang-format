@@ -1,0 +1,8 @@
+---
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 100
+# Google deriva o alinhamento do ponteiro do próprio arquivo; fixamos no idioma de C ("char *p")
+# para que a CI não fique gangorrando entre "char* p" e "char *p" conforme o arquivo.
+DerivePointerAlignment: false
+PointerAlignment: Right
