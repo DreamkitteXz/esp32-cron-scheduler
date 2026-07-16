@@ -204,6 +204,10 @@ sintaxe, itens vazios), match (AND, a regra OR do Vixie, off-by-one do `tm_mon`)
 A CI roda três jobs com fail-fast: `lint` (clang-format + cppcheck), `host-tests` e `build`
 (ESP-IDF v5.3), com o `build` dependendo dos dois primeiros.
 
+> **Formate com `clang-format==20.1.8`** (`pip install clang-format==20.1.8`) — a mesma versão que
+> a CI fixa. Versões diferentes calculam a largura de coluna de caracteres UTF-8 de outro jeito e
+> realinham comentários à direita sozinhas, quebrando o lint sem ninguém ter tocado no código.
+
 ## Limitações
 
 - **Nada foi validado em hardware.** O código compila e os testes de host passam; o comportamento

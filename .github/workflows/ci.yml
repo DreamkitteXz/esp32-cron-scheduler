@@ -25,8 +25,15 @@ jobs:
 
       - name: Install tools
         run: |
+          # clang-format vem do pip com versao FIXA, e nao do apt.
+          # O `apt install clang-format` segue a imagem do runner: hoje entrega a 18, amanha outra.
+          # Versoes diferentes discordam da largura de coluna de caracteres UTF-8 e realinham
+          # comentarios a direita sozinhas -- o lint quebraria num bump da imagem, sem ninguem
+          # ter tocado no codigo. Formate localmente com ESTA versao.
+          pip install clang-format==20.1.8
+          clang-format --version
           sudo apt-get update -qq
-          sudo apt-get install -y clang-format cppcheck
+          sudo apt-get install -y cppcheck
 
       - name: Check formatting (clang-format)
         run: |
