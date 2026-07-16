@@ -243,8 +243,14 @@ bool cron_match(const cron_expr_t *e, const struct tm *t) {
            day_matches(e, t);
 }
 
-/* newlib (ESP-IDF) oferece localtime_r; a UCRT do MinGW só tem localtime_s, com os args trocados.
+/*
+ * newlib (ESP-IDF) oferece localtime_r; a UCRT do MinGW só tem localtime_s, com os args trocados.
+ *
+ * A supressão é para o cppcheck analisando o ramo _WIN32: ele não tem modelo do localtime_s da
+ * Microsoft, então não enxerga que a função escreve através de `out` e sugere torná-lo const — o
+ * que não compilaria no ramo localtime_r. Falso positivo da configuração, não descuido.
  */
+/* cppcheck-suppress constParameterPointer */
 static bool localtime_safe(const time_t *t, struct tm *out) {
 #if defined(_WIN32)
     return localtime_s(out, t) == 0;
@@ -263,7 +269,7 @@ time_t cron_next_run(const cron_expr_t *e, time_t after) {
     }
 
     time_t candidate = after + 1; /* estritamente depois de `after` */
-    struct tm t;
+    struct tm t = {0};            /* zerado antes: quem preenche é a libc, mas não custa garantir */
     if (!localtime_safe(&candidate, &t)) {
         return (time_t)-1;
     }
