@@ -1,3 +1,3 @@
 idf_component_register(SRCS "src/clk.c"
                        INCLUDE_DIRS "include"
-                       PRIV_REQUIRES sched)
+                       PRIV_REQUIRES sched esp_netif lwip)

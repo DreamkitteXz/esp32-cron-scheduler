@@ -13,6 +13,10 @@ extern "C" {
 /** Timezone POSIX de America/Sao_Paulo. UTC-3 fixo: o horário de verão foi extinto em 2019. */
 #define CLK_TZ "<-03>3"
 
+/** Servidor e timeout padrão do NTP, usados pelo comando `time sync`. */
+#define CLK_NTP_SERVER "pool.ntp.org"
+#define CLK_NTP_TIMEOUT_MS 10000
+
 /** Fixa o TZ do processo e cria o event group de sincronismo. Não fala com a rede. */
 esp_err_t clk_init(void);
 
