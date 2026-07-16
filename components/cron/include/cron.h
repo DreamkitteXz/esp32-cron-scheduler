@@ -23,6 +23,15 @@ typedef struct {
     uint32_t mday; /**< bits 1..31 */
     uint32_t mon;  /**< bits 1..12 */
     uint32_t wday; /**< bits 0..6, 0 = domingo */
+
+    /*
+     * Regra do Vixie cron: quando dia-do-mês E dia-da-semana são ambos restritos, a combinação
+     * é OR, não AND. "Restrito" ali é SINTÁTICO — o campo não ser literalmente "*" — e não
+     * semântico, então isto não dá para inferir da bitmask: "1-31" acende os mesmos bits que
+     * "*", mas conta como restrito. Daí guardarmos a informação no parse.
+     */
+    bool mday_star; /**< campo dia-do-mês era exatamente "*" */
+    bool wday_star; /**< campo dia-da-semana era exatamente "*" */
 } cron_expr_t;
 
 typedef enum {
