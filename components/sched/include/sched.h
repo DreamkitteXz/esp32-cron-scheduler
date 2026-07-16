@@ -21,7 +21,9 @@ typedef struct {
     int id;                           /**< 0..SCHED_MAX_ENTRIES-1 */
     sched_action_t action;            /**< o que fazer quando casar */
     cron_expr_t expr;                 /**< expressão já compilada em bitmasks */
-    char expr_str[SCHED_EXPR_MAXLEN]; /**< texto original, para exibir no `list` */
+    char expr_str[SCHED_EXPR_MAXLEN]; /**< texto original, para exibir no `status` */
+    uint32_t blink_hz;                /**< só para ACT_BLINK; 0 = default do componente led */
+    uint32_t blink_ms;                /**< só para ACT_BLINK; 0 = default do componente led */
     time_t last_fire;                 /**< último disparo, 0 se nunca disparou */
 } sched_entry_t;
 
@@ -32,14 +34,22 @@ esp_err_t sched_init(void);
  * enfileira um comando para a task do scheduler (a dona exclusiva da tabela) e espera a resposta
  * com timeout. Isso mantém a tabela com um único escritor e a CLI sem acesso ao mutex. */
 
-/** Compila `cron_expr`, ocupa um slot livre e devolve o id em `out_id`. */
-esp_err_t sched_add(const char *cron_expr, sched_action_t action, int *out_id);
+/**
+ * Compila `cron_expr`, ocupa um slot livre e devolve o id em `out_id`.
+ *
+ * `blink_hz`/`blink_ms` só valem para ACT_BLINK; 0 em qualquer um = default do componente led
+ * (5 Hz por 3 s). Retorna ESP_ERR_NO_MEM quando os SCHED_MAX_ENTRIES slots já estão ocupados,
+ * e ESP_ERR_INVALID_ARG se a expressão não compilar.
+ */
+esp_err_t sched_add(const char *cron_expr, sched_action_t action, uint32_t blink_hz,
+                    uint32_t blink_ms, int *out_id);
 
 /** Libera o slot `id`. ESP_ERR_NOT_FOUND se já estava livre. */
 esp_err_t sched_del(int id);
 
-/** Libera todos os slots. */
-esp_err_t sched_clear(void);
+/** Libera todos os slots. `out_removed` (opcional, pode ser NULL) recebe quantos foram removidos.
+ */
+esp_err_t sched_clear(size_t *out_removed);
 
 /** Copia as entradas ativas para `buf` (copy-out sob mutex, sem expor ponteiro da tabela). */
 esp_err_t sched_snapshot(sched_entry_t *buf, size_t cap, size_t *out_count);
