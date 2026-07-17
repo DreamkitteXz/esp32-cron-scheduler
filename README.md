@@ -4,7 +4,7 @@
 
 Agendador de comandos por expressões CRON em ESP32 (ESP-IDF + FreeRTOS): você descreve *quando*
 algo deve acontecer com uma expressão de 6 campos, e o firmware aciona o LED onboard na hora certa.
-Configurável por uma CLI serial, com relógio ajustado à mão ou por NTP.
+Configurável por uma CLI serial, com relógio ajustado à mão ou por NTP..
 
 ## Visão geral
 
