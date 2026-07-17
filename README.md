@@ -14,10 +14,10 @@ O relógio usa o fuso `America/Sao_Paulo` (UTC-3), acertado por `time set` ou po
 
 | Componente | Responsabilidade |
 |---|---|
-| `cron` | Compila a expressão em bitmasks e faz o match. **C puro** — não inclui nada do ESP-IDF nem do FreeRTOS, e é isso que permite testá-lo no PC. |
-| `sched` | Dona da tabela de 10 slots: timer de 1 Hz, task própria, fila de comandos e mutex. |
+| `cron` | Compila a expressão em bitmasks e faz o match. |
+| `sched` | tabela de 10 slots: timer de 1 Hz, task própria, fila de comandos e mutex. |
 | `led` | Task consumidora de fila; `liga`/`desliga`/`pisca` como máquina de estados sobre o GPIO2. |
-| `clk` | Relógio de parede: fuso, ajuste manual, SNTP e o aviso de salto de relógio. |
+| `clk` | fuso, ajuste manual, SNTP e o aviso de salto de relógio. |
 | `net` | Wi-Fi em modo estação, credencial em NVS e reconexão automática no boot. |
 | `cli` | `esp_console`: registro dos comandos, parsing dos argumentos e mensagens de erro. |
 | `common` | Só o `sched_action_t`, compartilhado por `sched` e `led`. |
@@ -59,12 +59,8 @@ idf.py build
 idf.py -p <PORTA> flash monitor
 ```
 
-A porta muda por sistema: **Windows** `COM3`, **Linux** `/dev/ttyUSB0` (ou `/dev/ttyACM0`),
-**macOS** `/dev/cu.usbserial-*`. No Linux, se der `Permission denied`, adicione seu usuário ao
-grupo `dialout` e reabra a sessão. Para sair do monitor: `Ctrl+]`.
-
 O binário fica em torno de **850 KB** — o stack Wi-Fi responde por cerca de dois terços disso.
-A partição de app padrão tem 1 MB, então sobram ~19% de folga (ver Limitações).
+A partição de app padrão tem 1 MB, então sobram ~19% de folga.
 
 ## Tutorial de uso
 
@@ -278,9 +274,7 @@ Mais exemplos:
 
 ### A regra dia-do-mês × dia-da-semana
 
-Este é o canto escuro do CRON, e vale entender antes de escrever uma expressão que use os dois.
-
-Adotamos a semântica do **Vixie cron** (o cron padrão do Linux): quando **os dois** campos são
+Utilizei a semântica do **Vixie cron** (o cron padrão do Linux): quando **os dois** campos são
 restritos, a combinação é **OU**, não E.
 
 ```
@@ -290,7 +284,7 @@ restritos, a combinação é **OU**, não E.
 Parece inconsistente com o resto (onde tudo é E), e é mesmo — mas é o comportamento que 40 anos de
 crontabs assumem, e mudá-lo surpreenderia mais do que ajudaria.
 
-O detalhe fino: **"restrito" é sintático, não semântico** — o campo não ser literalmente `*`. Isso
+um detalhe: **"restrito" é sintático, não semântico** — o campo não ser literalmente `*`. Isso
 importa porque `1-31` acende exatamente os mesmos bits que `*`, mas conta como restrito:
 
 ```
@@ -319,9 +313,9 @@ verdade aqui, e foi assim que descobrimos.)*
 
 **2. `host-tests` (~40 s).** Compila e roda os testes do parser CRON **no Ubuntu, sem ESP32**. Só é
 possível porque `components/cron` é C puro; é o CMake de `tests/host` que o compila junto com o
-Unity. Testar no PC é ordens de grandeza mais rápido que gravar num chip, e roda em cada push.
+Unity. Testar no PC é mais rápido que gravar num chip, e roda em cada push.
 
-**3. `build` (~5 min).** O requisito de verdade: o firmware compila para ESP32. Usa a action oficial
+**3. `build` (~5 min).** O firmware compila para ESP32. Usa a action oficial
 `espressif/esp-idf-ci-action@v1`, que roda o build **dentro do container Docker oficial da
 Espressif** com o ESP-IDF já instalado. É melhor que instalar o IDF na mão no runner porque o IDF
 tem toolchain, Python e dezenas de dependências: a instalação manual seria lenta, frágil e
@@ -329,7 +323,7 @@ divergiria do ambiente que a Espressif testa. A versão é fixada em `v5.3` — 
 transforma "a CI quebrou" num mistério sem ninguém ter mudado o código. Ao fim, sobe o `.bin` e o
 `.elf` como **artifact**, baixável pela página da run.
 
-Dois detalhes do YAML que fazem trabalho pesado:
+Dois detalhes do YAML:
 
 - **`needs: [lint, host-tests]`** no job de build: ele só começa se os dois passarem. Sem isso, o
   GitHub rodaria os três em paralelo e gastaria 5 minutos de build para depois avisar que faltava
@@ -341,7 +335,7 @@ Dois detalhes do YAML que fazem trabalho pesado:
 ## Testes
 
 A estratégia é dividir o que precisa de hardware do que não precisa. `components/cron` — o parser e
-o match, que é onde mora a lógica sutil — **não inclui nenhum header do ESP-IDF, do FreeRTOS ou de
+o match — **não inclui nenhum header do ESP-IDF, do FreeRTOS ou de
 driver**. Essa restrição é o que permite compilá-lo num PC e testá-lo com Unity + CTest, sem gravar
 nada num chip:
 
@@ -371,12 +365,6 @@ ESP32 DevKit**: boot e CLI respondendo, os três tipos de agendamento disparando
 interrupção do pisca por um comando novo, o rebaseline num `time set` com salto grande (sem
 avalanche de disparos), e o Wi-Fi com `time sync` sincronizando de verdade.
 
-Vale ser preciso sobre o que isso significa: é validação, não regressão. Um refactor pode quebrar a
-preempção do pisca amanhã e a CI seguirá verde — ver "O que eu faria diferente com mais tempo".
-E ausência de condição de corrida, especificamente, **não se prova testando**: se prova pelo
-argumento estrutural (dono único + copy-out + fila). O teste aumenta a confiança; quem dá a
-garantia é o desenho.
-
 > Se for reformatar o código, use **`clang-format==20.1.8`** (`pip install clang-format==20.1.8`) —
 > a mesma versão que a CI fixa.
 
@@ -386,45 +374,19 @@ garantia é o desenho.
 
 | Task | Prioridade | Stack | Por quê |
 |---|---|---|---|
-| `led` | 6 | 2048 | A mais alta: o pisca tem prazo (meio período de 100 ms). Se o scheduler a preemptasse, o duty cycle tremeria a olho nu. |
+| `led` | 6 | 2048 | Ao pisca tem prazo (meio período de 100 ms) |
 | `sched` | 5 | 3072 | Precisa acordar todo segundo e avaliar a tabela antes do próximo tick. |
-| `cli` | 3 | 4096 | A mais baixa: ninguém morre se o eco do console atrasar alguns ms. Stack maior porque o `esp_console` é guloso. |
+| `cli` | 3 | 4096 | ninguém morre se o eco do console atrasar alguns ms.|
 
 Valores como macros no topo de cada `.c`. Além dessas rodam a Timer Service task (o tick de 1 Hz) e
 a task do event loop do IDF (eventos de Wi-Fi/IP).
 
 Em `app_main`, **o retorno de toda criação de objeto RTOS é checado** — fila, task, mutex, timer.
-Se algum não nascer, o boot aborta com log dizendo qual módulo falhou, em vez de subir fingindo que
-está tudo bem e travar dois minutos depois por um motivo irrastreável.
-
-### Ausência de condição de corrida
-
-Três mecanismos, cada um resolvendo um problema diferente — e é a combinação que dá a garantia:
-
-1. **Dono único.** A tabela tem uma só escritora: a task do `sched`. A CLI **nunca** a muta —
-   monta um comando, enfileira, acorda a task e espera a resposta com timeout. Isso torna
-   "achar slot livre + ocupá-lo" atômico por construção (sem TOCTOU) e impede que uma mutação se
-   intercale no meio de uma avaliação.
-2. **Mutex para o copy-out.** O `s_table_mutex` existe por **uma** razão: `sched_snapshot` lê a
-   tabela no contexto do *chamador* (o `status`), então precisa se proteger contra a escrita da
-   task. O chamador recebe uma cópia — nunca um ponteiro para dentro da tabela.
-3. **`s_api_mutex`.** Serializa os chamadores da API, o que torna seguro haver uma única fila de
-   resposta compartilhada: sem ele, a resposta de um chamador poderia ser lida por outro.
-
-Três regras de disciplina sustentam isso:
-
-- **Seção crítica curta.** Sob o mutex, só comparar com `cron_match()` e copiar as ações para um
-  vetor local. O mutex é solto **antes** de chamar `led_cmd()` — nada de I/O nem de chamada
-  bloqueante segurando o lock.
-- **O callback do timer só notifica.** Ele roda na Timer Service task; um mutex ou um `printf` ali
-  atrasaria todos os outros timers do sistema. Ele faz `xTaskNotifyGive` e mais nada.
-- **O comando vai na fila por valor, não por ponteiro.** Se o chamador estoura o timeout e retorna,
-  o buffer dele na pilha morre — mas a task ainda pode processar o comando depois. Um ponteiro ali
-  viraria *dangling*; copiar elimina a classe inteira do bug.
+Se algum não nascer, o boot aborta com log dizendo qual módulo falhou.
 
 ### Tratamento de salto de relógio
 
-O tick de 1 Hz conta ticks do RTOS, não segundos do relógio de parede — os dois derivam entre si, e
+O tick de 1 Hz conta ticks do RTOS — os dois derivam entre si, e
 um tick que escorregue pularia um segundo inteiro. Por isso a avaliação varre a **faixa**
 `(last_eval, now]`, não só `now`.
 
@@ -439,57 +401,10 @@ faz: não toca em `last_eval` nem levanta flag compartilhada. A decisão mora na
 a notificação é só "acorde e olhe o relógio agora", o que aplica o efeito no instante do ajuste em
 vez de até 1 s depois.
 
-### Parâmetros do pisca
-
-Padrão: **5 Hz** (100 ms aceso / 100 ms apagado) por **3 s**. Dá para sobrepor por agendamento —
-`sched add "..." pisca <hz> <seg>` — ou no comando manual `led pisca <hz> <seg>`. Faixa aceita:
-**1–50 Hz**. Para mudar o padrão, veja `LED_BLINK_DEFAULT_HZ` / `LED_BLINK_DEFAULT_MS` no topo de
-[`components/led/src/led.c`](components/led/src/led.c).
-
-A faixa é validada na CLI **e** no `sched_add`, não só no `led_cmd`: aceitar um agendamento que só
-falharia no disparo — horas depois e longe do comando que o criou — é pior do que recusá-lo na hora.
-
-A task do LED usa `xQueueReceive` cujo **timeout é o instante do próximo toggle**. Ou chega comando
-novo e o estado troca na hora, ou o timeout vence e a máquina dá um passo. É isso que faz um comando
-novo **interromper** o pisca em andamento, sem `vTaskDelay` bloqueante (que ignoraria a fila) e sem
-um timer extra. A duração é contada para baixo em vez de comparada com `xTaskGetTickCount()`, porque
-o contador de ticks estoura (~49 dias a 1 kHz) e a comparação de instantes quebraria na virada.
-
-### O que eu faria diferente com mais tempo
-
-- **Persistir os agendamentos em NVS.** Hoje um reboot limpa a tabela, mas a credencial do Wi-Fi
-  sobrevive — é incoerente, e o usuário não espera isso.
-- **Automatizar a validação no alvo.** O firmware foi exercitado à mão na placa, mas isso não é
-  regressão: nada impede alguém de quebrar a preempção do pisca num refactor e a CI seguir verde.
-  Um teste com o `esp_timer` mockado, ou uma bancada com fotodiodo lendo o GPIO, fecharia a lacuna
-  entre "eu vi funcionar" e "continua funcionando".
-- **Dormir até o próximo disparo** usando `cron_next_run()` (já implementado e testado) em vez de
-  acordar a 1 Hz. Menos wakeups, melhor consumo. O tick fixo foi escolhido por ser mais simples de
-  auditar — e essa troca só compensa quando consumo virar requisito.
-- **Uma fila de resposta por chamador**, em vez do `s_api_mutex` serializando todo mundo. Funciona
-  com uma CLI; não escalaria para dois clientes.
-- **Criptografar a credencial do Wi-Fi**, hoje gravada em NVS em texto claro.
-
-## Premissas assumidas
-
-Registradas porque são escolhas, não fatos do enunciado:
-
-1. **A tabela de ranges do PDF veio corrompida** (`0–5U`). Assumi os ranges canônicos do cron:
-   **0–59** para segundo e minuto, e **IDs de agendamento 0–9** (até 10 agendamentos).
-2. **Dia-do-mês × dia-da-semana: semântica Vixie** — OU quando ambos restritos, com "restrito"
-   sendo sintático (ver "Formato CRON").
-3. **Pisca**: 5 Hz por 3 s como padrão; faixa 1–50 Hz.
-4. **Intervalo invertido** (`5-2`) é erro de range, sem wrap-around.
-5. **`N/S` não faz parte da gramática** — só `*/S` e `N-M/S`. O Vixie real aceitaria `5/2` como
-   `5-59/2`; aqui é erro de sintaxe.
-
 ## Uso de IA no desenvolvimento
 
-O enunciado permite IA e exige que eu saiba explicar cada linha — então registro aqui, com
-honestidade, como ela entrou no processo.
-
 Usei IA como par de programação ao longo de todo o projeto. A implementação foi feita **por mim em
-conjunto com a ferramenta**: eu conduzi as decisões de arquitetura, defini o escopo de cada etapa,
+conjunto com a IA**: eu conduzi as decisões de arquitetura, defini o escopo de cada etapa,
 revisei o que entrou e rejeitei o que não me convenceu. Trabalhamos em fases — parser, concorrência,
 LED, CLI/relógio, Wi-Fi — e cada fase só avançava depois de eu entender o que tinha sido feito.
 
@@ -499,8 +414,8 @@ LED, CLI/relógio, Wi-Fi — e cada fase só avançava depois de eu entender o q
   jobs, `needs`, `concurrency`, por que usar o container oficial da Espressif em vez de instalar o
   IDF no runner, por que fixar a versão em vez de usar `latest`. A seção "Como funciona a CI" acima
   é o resultado desse aprendizado, escrita para o próximo que chegar sem saber o que é um runner.
-- **A semântica fina do CRON.** Eu conhecia o formato de vista, não a fundo. A regra dia-do-mês ×
-  dia-da-semana do Vixie — e principalmente a sutileza de que "restrito" é *sintático*, então
+- **A semântica fina do CRON.** Eu não conhecia o CRON. A regra dia-do-mês ×
+  dia-da-semana do Vixie — e principalmente de que "restrito" é *sintático*, então
   `1-31` não é a mesma coisa que `*` — foi algo que eu só entendi discutindo o problema. Virou
   teste, comentário no código e uma seção do README.
 - **Boas práticas de concorrência em FreeRTOS.** Por que o callback de um software timer não pode
@@ -514,26 +429,16 @@ O mesmo vale para o workflow de CI e para o parser. As seções "Decisões de pr
 deste README são a evidência: elas não descrevem o que o código faz — descrevem **por que** ele faz
 assim, e o que a alternativa custaria.
 
-Alguns problemas apareceram só no processo e valem menção, porque foram resolvidos entendendo a
-causa e não tentando de novo até passar: o `-Werror` do ESP-IDF derrubou o build por causa de um
-`/*` dentro de um comentário; o lint quebrou na CI por deriva de versão do `clang-format` (18 vs 20
-alinham comentários com UTF-8 de forma diferente), e a correção foi fixar a versão, não mexer no
-código; e o `cppcheck` acusou um falso positivo no shim de `localtime` porque não tem modelo do
-`localtime_s` da Microsoft.
-
 Revisei e entendo cada parte do que está aqui, e estou à disposição para conversar sobre qualquer
 decisão do código.
 
 ## Limitações conhecidas
 
 - **A validação no alvo foi manual, não automatizada.** O comportamento na placa foi conferido à
-  mão; não há teste de regressão que pegue, por exemplo, alguém quebrar a preempção do pisca num
-  refactor futuro. Os testes automatizados cobrem o parser, não o firmware montado.
+  mão; 
 - Máximo de 10 agendamentos simultâneos.
 - Agendamentos vivem só em RAM: reboot limpa a tabela.
 - Resolução de 1 s. Agendamento perdido num salto de relógio > 5 s não é recuperado (por design).
-- **Não existe um comando `monitor`**: o `status` dá uma foto sob demanda, mas não há stream
-  contínuo de disparos no console.
 - **A sincronização NTP chama-se `time sync`**, agrupada com os demais subcomandos de relógio.
 - `cron_next_run()` está implementado e testado, mas **não é exposto na CLI** — o `status` mostra o
   último disparo, não o próximo.
