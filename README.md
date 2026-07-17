@@ -26,6 +26,12 @@ O `common` existe para quebrar um ciclo de dependência: `led.h` precisa do tipo
 assinatura de `led_cmd()`, e `sched.c` precisa chamar `led_cmd()`. Com o enum em `sched.h`,
 `led → sched` e `sched → led` fechariam um ciclo de `REQUIRES` no ESP-IDF.
 
+## Uso de IA no desenvolvimento
+
+Usei IA como par de programação ao longo de todo o projeto. Pedi para ela documentar todo o código com comentários para facilitar a leitura, além de pedir para ela subir os commits com mensagens fáceis. A implementação foi feita **por mim em
+conjunto com a IA**: eu conduzi as decisões de arquitetura, defini o escopo de cada etapa,
+revisei o que entrou e rejeitei o que não me convenceu. Trabalhamos em fases — parser, concorrência,
+LED, CLI/relógio, Wi-Fi — e cada fase só avançava depois de eu entender o que tinha sido feito.
 ### Fluxo de concorrência
 
 ```
@@ -400,13 +406,6 @@ de relógio não perde agendamento. O teto é uma escolha, não um "ignore tudo"
 faz: não toca em `last_eval` nem levanta flag compartilhada. A decisão mora na task dona do estado;
 a notificação é só "acorde e olhe o relógio agora", o que aplica o efeito no instante do ajuste em
 vez de até 1 s depois.
-
-## Uso de IA no desenvolvimento
-
-Usei IA como par de programação ao longo de todo o projeto. Pedi para ela documentar todo o código com comentários para facilitar a leitura. A implementação foi feita **por mim em
-conjunto com a IA**: eu conduzi as decisões de arquitetura, defini o escopo de cada etapa,
-revisei o que entrou e rejeitei o que não me convenceu. Trabalhamos em fases — parser, concorrência,
-LED, CLI/relógio, Wi-Fi — e cada fase só avançava depois de eu entender o que tinha sido feito.
 
 **Onde a IA mais ajudou foi justamente nos assuntos que eu não dominava:**
 
