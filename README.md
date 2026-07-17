@@ -403,7 +403,7 @@ vez de até 1 s depois.
 
 ## Uso de IA no desenvolvimento
 
-Usei IA como par de programação ao longo de todo o projeto. A implementação foi feita **por mim em
+Usei IA como par de programação ao longo de todo o projeto. Pedi para ela documentar todo o código com comentários para facilitar a leitura. A implementação foi feita **por mim em
 conjunto com a IA**: eu conduzi as decisões de arquitetura, defini o escopo de cada etapa,
 revisei o que entrou e rejeitei o que não me convenceu. Trabalhamos em fases — parser, concorrência,
 LED, CLI/relógio, Wi-Fi — e cada fase só avançava depois de eu entender o que tinha sido feito.
